@@ -8,16 +8,66 @@ import nut2
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.reactive import reactive
-from textual.widgets import Footer, Header, ListItem, ListView, Static
+from textual.widgets import DataTable, Footer, Header, ListItem, ListView, Static
 
-from .config import ConfigManager
+from .config import ConfigManager, DEFAULT_MONITOR_FIELDS
 from .models import Endpoint
 from .store import EndpointsStore
 from .widgets import EndpointForm, EndpointRow
 from .version import __version__
 
-VALID_SCREENS = ("monitor", "details", "settings")
-SCREEN_TO_MENU_INDEX = {"monitor": 0, "details": 1, "settings": 2}
+VALID_SCREENS = ("monitor", "details", "devices", "display-fields", "settings")
+SCREEN_TO_MENU_INDEX = {"monitor": 0, "details": 1, "devices": 3, "display-fields": 4, "settings": 3}
+BASE_MONITOR_FIELDS: list[str] = [
+    "model",
+    "battery.charge",
+    "battery.runtime",
+    "battery.voltage",
+    "input.voltage",
+    "ups.beeper.status",
+    "ups.load",
+    "ups.status",
+]
+
+
+def discover_available_fields(store: EndpointsStore) -> list[str]:
+    fields = set(BASE_MONITOR_FIELDS)
+    for endpoint in store.list():
+        endpoint_devices, _ = fetch_endpoint_devices(endpoint)
+        for device in endpoint_devices:
+            fields.update(device.values.keys())
+    return sorted(fields)
+
+
+def grouped_field_sections(fields: list[str]) -> list[tuple[str, list[str]]]:
+    groups: dict[str, list[str]] = {
+        "Device": [],
+        "Battery": [],
+        "Input": [],
+        "UPS": [],
+        "Output": [],
+        "Other": [],
+    }
+    for field in fields:
+        if field == "model" or field.startswith("device."):
+            groups["Device"].append(field)
+        elif field.startswith("battery."):
+            groups["Battery"].append(field)
+        elif field.startswith("input."):
+            groups["Input"].append(field)
+        elif field.startswith("ups."):
+            groups["UPS"].append(field)
+        elif field.startswith("output."):
+            groups["Output"].append(field)
+        else:
+            groups["Other"].append(field)
+
+    grouped: list[tuple[str, list[str]]] = []
+    for name in ("Device", "Battery", "Input", "UPS", "Output", "Other"):
+        section_fields = sorted(set(groups[name]))
+        if section_fields:
+            grouped.append((name, section_fields))
+    return grouped
 
 
 @dataclass(slots=True)
@@ -73,7 +123,9 @@ class Menu(Static):
         self.list_view = ListView(
             ListItem(Static("Monitor", id="menu-monitor")),
             ListItem(Static("Details", id="menu-details")),
-            ListItem(Static("Settings", id="menu-settings")),
+            ListItem(Static("Settings", id="menu-settings-heading")),
+            ListItem(Static("- Devices", id="menu-devices")),
+            ListItem(Static("- Display Fields", id="menu-display-fields")),
         )
 
     def compose(self) -> ComposeResult:
@@ -81,12 +133,84 @@ class Menu(Static):
 
 
 class MonitorScreen(Static):
-    """Placeholder for monitor view."""
+    """Continuously poll UPS devices and show a fleet status table."""
 
-    poll_interval = reactive(1)
+    poll_interval = reactive(5)
 
-    def render(self) -> str:
-        return f"Monitor view (poll interval: {self.poll_interval}s)"
+    def __init__(self, store: EndpointsStore, config: ConfigManager, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.store = store
+        self.config = config
+
+    def compose(self) -> ComposeResult:
+        yield Vertical(
+            Static("Polling UPS devices...", id="monitor-status"),
+            DataTable(id="monitor-table"),
+            classes="monitor-container",
+        )
+
+    @staticmethod
+    def _get_value(values: dict[str, str], key: str, fallback: str = "-") -> str:
+        value = values.get(key)
+        if value is None or value == "":
+            return fallback
+        return value
+
+    @classmethod
+    def build_row_values(cls, device: DeviceSnapshot) -> dict[str, str]:
+        values = {key: str(value) for key, value in device.values.items()}
+        values["model"] = cls._get_value(values, "device.model", cls._get_value(values, "ups.model"))
+        return values
+
+    def selected_fields(self) -> list[str]:
+        selected = self.config.load_monitor_fields()
+        return selected or list(DEFAULT_MONITOR_FIELDS)
+
+    def rebuild_columns(self) -> None:
+        table = self.query_one("#monitor-table", DataTable)
+        table.clear(columns=True)
+        fields = self.selected_fields()
+        table.add_columns("Device", *fields)
+
+    def refresh_monitor(self) -> None:
+        table = self.query_one("#monitor-table", DataTable)
+        status = self.query_one("#monitor-status", Static)
+        fields = self.selected_fields()
+
+        # Rebuild each refresh so monitor column selection changes apply immediately.
+        self.rebuild_columns()
+        table = self.query_one("#monitor-table", DataTable)
+
+        errors: list[str] = []
+        row_count = 0
+
+        for endpoint in self.store.list():
+            endpoint_devices, endpoint_errors = fetch_endpoint_devices(endpoint)
+            errors.extend(endpoint_errors)
+            for device in endpoint_devices:
+                values = self.build_row_values(device)
+                table.add_row(device.upsc_target(), *(values.get(field, "-") for field in fields))
+                row_count += 1
+
+        if row_count == 0:
+            if errors:
+                status.update("Polling failed: " + " | ".join(errors))
+            else:
+                status.update("No devices found. Add endpoints in Settings.")
+            return
+
+        if errors:
+            status.update(f"Showing {row_count} device(s) with {len(errors)} error(s).")
+        else:
+            status.update(f"Showing {row_count} device(s). Refresh every {self.poll_interval}s.")
+
+    def on_mount(self) -> None:
+        table = self.query_one("#monitor-table", DataTable)
+        table.cursor_type = "row"
+        table.zebra_stripes = True
+        self.rebuild_columns()
+        self.refresh_monitor()
+        self.set_interval(self.poll_interval, self.refresh_monitor)
 
 
 class DetailsScreen(Static):
@@ -165,8 +289,8 @@ class DetailsScreen(Static):
             self.query_one("#details-output-text", Static).update(self.format_device_details(self.devices[index]))
 
 
-class SettingsScreen(Static):
-    """Settings view for managing NUT endpoints."""
+class DevicesScreen(Static):
+    """Settings sub-screen for managing NUT endpoints."""
 
     def __init__(self, store: EndpointsStore, config: ConfigManager, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -176,11 +300,14 @@ class SettingsScreen(Static):
 
     def compose(self) -> ComposeResult:
         self.form = EndpointForm(classes="endpoint-form")
-        yield Vertical(
-            Static("Configured endpoints", classes="section-title"),
-            Container(id="endpoint-list", classes="endpoint-list"),
-            self.form,
-            classes="settings-container",
+        yield VerticalScroll(
+            Vertical(
+                Static("Configured endpoints", classes="section-title"),
+                Container(id="endpoint-list", classes="endpoint-list"),
+                self.form,
+                classes="settings-container",
+            ),
+            id="settings-scroll-devices",
         )
 
     def on_mount(self) -> None:
@@ -215,6 +342,81 @@ class SettingsScreen(Static):
             self.form.load_endpoint(message.endpoint)
 
 
+class DisplayFieldsScreen(Static):
+    """Settings sub-screen showing all available monitor fields."""
+
+    def __init__(self, store: EndpointsStore, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.store = store
+
+    BINDINGS = [
+        ("up", "scroll_up", "Up"),
+        ("down", "scroll_down", "Down"),
+        ("pageup", "page_up", "Page Up"),
+        ("pagedown", "page_down", "Page Down"),
+        ("home", "scroll_home", "Top"),
+        ("end", "scroll_end", "Bottom"),
+    ]
+
+    def compose(self) -> ComposeResult:
+        yield VerticalScroll(
+            Static("Loading fields...", id="display-fields-text"),
+            id="settings-scroll-fields",
+            can_focus=True,
+        )
+
+    def on_mount(self) -> None:
+        self.refresh_fields_form()
+        self.query_one("#settings-scroll-fields", VerticalScroll).focus()
+
+    def on_show(self) -> None:
+        self.query_one("#settings-scroll-fields", VerticalScroll).focus()
+
+    def _scroller(self) -> VerticalScroll:
+        return self.query_one("#settings-scroll-fields", VerticalScroll)
+
+    def action_scroll_up(self) -> None:
+        self._scroller().scroll_up()
+
+    def action_scroll_down(self) -> None:
+        self._scroller().scroll_down()
+
+    def action_page_up(self) -> None:
+        self._scroller().scroll_page_up()
+
+    def action_page_down(self) -> None:
+        self._scroller().scroll_page_down()
+
+    def action_scroll_home(self) -> None:
+        self._scroller().scroll_home(animate=False)
+
+    def action_scroll_end(self) -> None:
+        self._scroller().scroll_end(animate=False)
+
+    def refresh_fields_form(self) -> None:
+        output = self.query_one("#display-fields-text", Static)
+
+        fields = discover_available_fields(self.store)
+        sections = grouped_field_sections(fields)
+        selected = set(self.app.config.load_monitor_fields())
+
+        if not sections:
+            output.update("No fields discovered yet. Add a device in Settings > Devices.")
+            return
+
+        lines = ["Available fields (deduplicated)", ""]
+        for section_name, section_fields in sections:
+            lines.append(section_name)
+            for field in section_fields:
+                if field in selected:
+                    lines.append(f"  [green]{field}[/green]")
+                else:
+                    lines.append(f"  {field}")
+            lines.append("")
+
+        output.update("\n".join(lines).rstrip())
+
+
 class LazyUPSApp(App):
     """Main Textual application."""
 
@@ -243,18 +445,22 @@ class LazyUPSApp(App):
         with Horizontal(id="layout"):
             yield Menu()
             with Container(id="content"):
-                self.monitor_screen = MonitorScreen(id="monitor")
+                self.monitor_screen = MonitorScreen(self.store, self.config, id="monitor")
                 self.details_screen = DetailsScreen(self.store, id="details")
-                self.settings_screen = SettingsScreen(self.store, self.config, id="settings")
+                self.devices_screen = DevicesScreen(self.store, self.config, id="devices")
+                self.display_fields_screen = DisplayFieldsScreen(self.store, id="display-fields")
                 yield self.monitor_screen
                 yield self.details_screen
-                yield self.settings_screen
+                yield self.devices_screen
+                yield self.display_fields_screen
         yield Footer()
 
     def on_mount(self) -> None:
         self.show_screen(self.start_screen)
 
     def show_screen(self, screen_id: str) -> None:
+        if screen_id == "settings":
+            screen_id = "devices"
         if screen_id not in VALID_SCREENS:
             raise ValueError(f"Unknown screen '{screen_id}'. Valid options: {', '.join(VALID_SCREENS)}")
         content = self.query_one("#content")
@@ -268,12 +474,19 @@ class LazyUPSApp(App):
         widget_id = event.item.query_one(Static).id
         if widget_id == "menu-monitor":
             self.show_screen("monitor")
+            self.query_one("#monitor", MonitorScreen).refresh_monitor()
         elif widget_id == "menu-details":
             self.show_screen("details")
             self.query_one("#details", DetailsScreen).refresh_details()
-        elif widget_id == "menu-settings":
-            self.show_screen("settings")
-            self.query_one("#settings", SettingsScreen).refresh_endpoints()
+        elif widget_id == "menu-settings-heading":
+            self.show_screen("devices")
+            self.query_one("#devices", DevicesScreen).refresh_endpoints()
+        elif widget_id == "menu-devices":
+            self.show_screen("devices")
+            self.query_one("#devices", DevicesScreen).refresh_endpoints()
+        elif widget_id == "menu-display-fields":
+            self.show_screen("display-fields")
+            self.query_one("#display-fields", DisplayFieldsScreen).refresh_fields_form()
 
 
 __all__ = [

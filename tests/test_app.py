@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from lazyups.app import DeviceSnapshot, DetailsScreen, LazyUPSApp
+from lazyups.app import DeviceSnapshot, DetailsScreen, LazyUPSApp, MonitorScreen
 from lazyups.models import Endpoint
 from lazyups.store import EndpointsStore
 
@@ -46,6 +46,35 @@ def test_details_screen_renders_upsc_device_details() -> None:
     assert "Endpoint: Rack UPS (ups.example.com:3493)" in rendered
     assert "battery.charge: 100" in rendered
     assert "ups.status: OL" in rendered
+
+
+def test_monitor_row_contains_requested_fields() -> None:
+    endpoint = Endpoint("ups.example.com", 3493, "Rack UPS")
+    device = DeviceSnapshot(
+        endpoint=endpoint,
+        ups_name="myups",
+        description="Main",
+        values={
+            "battery.charge": "98",
+            "battery.runtime": "3600",
+            "battery.voltage": "13.5",
+            "device.model": "Smart-UPS 1500",
+            "input.voltage": "120.0",
+            "ups.beeper.status": "enabled",
+            "ups.load": "15",
+            "ups.status": "OL",
+        },
+    )
+
+    row = MonitorScreen.build_row_values(device)
+    assert row["battery.charge"] == "98"
+    assert row["battery.runtime"] == "3600"
+    assert row["battery.voltage"] == "13.5"
+    assert row["model"] == "Smart-UPS 1500"
+    assert row["input.voltage"] == "120.0"
+    assert row["ups.beeper.status"] == "enabled"
+    assert row["ups.load"] == "15"
+    assert row["ups.status"] == "OL"
 
 
 def test_app_can_instantiate() -> None:
