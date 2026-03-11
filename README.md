@@ -145,6 +145,30 @@ dist/lazyups
 
 ---
 
+## Release/version consistency
+
+App version, package version, and latest git tag should stay aligned.
+
+Check before/after tagging:
+
+```bash
+./check-version-sync.sh
+```
+
+Expected tag format:
+
+```text
+v<app-version>
+```
+
+Example:
+
+```text
+v00.03.02
+```
+
+---
+
 ## Notes
 
 - NUT backend is provided through `nut2`.

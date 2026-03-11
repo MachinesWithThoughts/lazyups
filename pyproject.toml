@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lazyups"
 # Transferring development to Darren.
-version = "00.01.01"
+version = "00.03.02"
 description = "Summarise data from multiple Network UPS Tools (NUT) endpoints"
 readme = "README.md"
 authors = [{ name = "MWT" }]
