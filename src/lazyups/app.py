@@ -125,7 +125,7 @@ class Menu(Static):
             ListItem(Static("Details", id="menu-details")),
             ListItem(Static("Settings", id="menu-settings-heading")),
             ListItem(Static("- Devices", id="menu-devices")),
-            ListItem(Static("- Display Fields", id="menu-display-fields")),
+            ListItem(Static("- Fields", id="menu-display-fields")),
         )
 
     def compose(self) -> ComposeResult:
