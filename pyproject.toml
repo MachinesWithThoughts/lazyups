@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lazyups"
+version = "00.01.00"
+description = "Summarise data from multiple Network UPS Tools (NUT) endpoints"
+readme = "README.md"
+authors = [{ name = "MWT" }]
+license = { text = "MIT" }
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "click>=8.1",
+    "nut2==2.1.1",
+    "rich>=13.7",
+    "textual>=0.55",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "ruff>=0.2",
+    "mypy>=1.8",
+]
+
+[project.scripts]
+lazyups = "lazyups.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = ["--cov=lazyups", "--cov-report=term-missing"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "B", "I"]
+
+[tool.mypy]
+python_version = "3.12"
+packages = ["lazyups"]
+warn_unused_configs = true
+warn_return_any = true
+warn_unused_ignores = true

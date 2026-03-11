@@ -1,0 +1,101 @@
+#layout {
+    height: 1fr;
+}
+
+#layout Menu {
+    width: 24;
+    background: $surface-darken-1;
+}
+
+#content > * {
+    display: none;
+    padding: 1 2;
+}
+
+#content > #monitor,
+#content > #details,
+#content > #settings {
+    display: block;
+}
+
+.settings-container {
+    layout: vertical;
+}
+
+.settings-container > * {
+    margin-top: 1;
+}
+
+.settings-container > :first-child {
+    margin-top: 0;
+}
+
+.endpoint-list {
+    layout: vertical;
+    border: round $surface-lighten-1;
+    padding: 1;
+    height: 1fr;
+    overflow: auto;
+}
+
+.endpoint-row {
+    layout: horizontal;
+    align: center middle;
+    padding: 0 1;
+}
+
+.endpoint-row > * {
+    margin-left: 2;
+}
+
+.endpoint-row > :first-child {
+    margin-left: 0;
+}
+
+.endpoint-row .endpoint-name {
+    width: 32;
+}
+
+.endpoint-row .endpoint-host {
+    width: 24;
+}
+
+.endpoint-row .endpoint-port {
+    width: 8;
+}
+
+.endpoint-row .endpoint-actions {
+    layout: horizontal;
+}
+
+.endpoint-row .endpoint-actions > * {
+    margin-left: 1;
+}
+
+.endpoint-row .endpoint-actions > :first-child {
+    margin-left: 0;
+}
+
+.endpoint-form {
+    layout: horizontal;
+}
+
+.endpoint-form > * {
+    margin-left: 1;
+}
+
+.endpoint-form > :first-child {
+    margin-left: 0;
+}
+
+.endpoint-form Input {
+    width: 24;
+}
+
+.endpoint-form Input#endpoint-name {
+    width: 32;
+}
+
+.endpoint-form Button#submit-endpoint {
+    width: auto;
+}
