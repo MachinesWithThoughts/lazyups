@@ -3,7 +3,7 @@
 }
 
 #layout Menu {
-    width: 24;
+    width: 12;
     background: $surface-darken-1;
 }
 
@@ -16,6 +16,29 @@
 #content > #details,
 #content > #settings {
     display: block;
+}
+
+#details-layout {
+    height: 1fr;
+}
+
+.details-sidebar {
+    width: 24;
+    height: 1fr;
+    margin-right: 1;
+}
+
+.details-device-list {
+    border: round $surface-lighten-1;
+    height: 1fr;
+    overflow: auto;
+}
+
+.details-output {
+    border: round $surface-lighten-1;
+    padding: 1;
+    height: 1fr;
+    overflow: auto;
 }
 
 .settings-container {
