@@ -1,55 +1,142 @@
-# lazyups
+# LazyUPS
 
-LazyUPS is a command-line utility for collecting and summarising information from multiple [Network UPS Tools](https://networkupstools.org/) (NUT) endpoints. Point LazyUPS at one or more UPS daemons, and it will consolidate key telemetry such as model, status, charge, runtime estimates, and alerts into a concise report suitable for dashboards or operational runbooks.
+LazyUPS is a Textual TUI for monitoring one or more
+[Network UPS Tools (NUT)](https://networkupstools.org/) endpoints.
 
-## Features
+It lets you:
+- manage NUT endpoints
+- continuously monitor key UPS telemetry in a live table
+- inspect full `upsc <name>@<host>` details per device
+- view all discovered fields grouped by category
 
-- Connect to one or more NUT servers over TCP (default port 3493)
-- Query multiple UPS devices exposed by each server
-- Extract a curated subset of metrics (status, charge, runtime, voltage, load, temperature, alarms)
-- Present results as a terminal table, JSON document, or Markdown summary
-- Gracefully handle connectivity errors and partial data
-- Provide exit codes that reflect overall fleet health for automation hooks
+---
 
-## Quick start
+## Requirements
 
-> **Note:** This project is under active development. Interfaces may change.
+- Python **3.12**
+- [`uv`](https://docs.astral.sh/uv/) installed and available in `PATH`
+- Reachable NUT servers (`upsd`, usually on port `3493`)
 
-### Requirements
+---
 
-- Python 3.12+
-- Access to one or more NUT servers (for example, `upsd`) reachable over the network
+## Install / Run
 
-### Installation
-
-```bash
-pip install -e .
-```
-
-### Usage
+From the project root:
 
 ```bash
-lazyups --server ups1.example.com --server ups2.example.com --format table
+./run.sh
 ```
 
-Use `--help` to review all options.
+`run.sh` will automatically create/sync `.venv` via `uv`.
 
-## Development
+You can also start on a specific screen:
 
 ```bash
-# Install dependencies
-pip install -e .[dev]
-
-# Run tests
-pytest
+./run.sh --start-screen monitor
+./run.sh --start-screen details
+./run.sh --start-screen devices
+./run.sh --start-screen display-fields
 ```
 
-## Roadmap
+---
 
-- Configuration file support (YAML / TOML)
-- Prometheus metrics exporter
-- Web dashboard with historical trends
-- Automated discovery via SRV records and/or environment variables
+## Screens
+
+### Monitor
+
+Live polling table across all configured endpoints/devices.
+
+By default it shows:
+- `battery.charge`
+- `battery.runtime`
+- `battery.voltage`
+- `model`
+- `input.voltage`
+- `ups.beeper.status`
+- `ups.load`
+- `ups.status`
+
+Rows are keyed by `DEVICENAME@HOSTNAME`.
+
+### Details
+
+Shows full `upsc`-style details for discovered devices:
+- left pane: device selector
+- right pane: full variable dump for the selected device
+
+### Settings
+
+Menu contains two settings sub-screens:
+
+- `- Devices`
+  - add/edit/remove endpoint host/port/name
+- `- Display Fields`
+  - shows **all discovered fields**, deduplicated and grouped
+  - selected monitor fields are highlighted in green
+
+---
+
+## Configuration file
+
+Path:
+
+```text
+~/.lazyups.config
+```
+
+Current schema:
+
+```json
+{
+  "endpoints": [
+    { "host": "ups1.local", "port": 3493, "name": "Rack UPS" }
+  ],
+  "monitor_fields": [
+    "battery.charge",
+    "ups.status"
+  ]
+}
+```
+
+Startup validates this file. If invalid, LazyUPS exits with a clear error.
+
+---
+
+## Validation / Tests
+
+### Runtime import check
+
+```bash
+./run.sh --validate-runtime
+```
+
+### Screen rendering check
+
+```bash
+./run.sh --validate-screens
+```
+
+Or a subset:
+
+```bash
+./run.sh --validate-screens --validation-screens settings
+```
+
+### Unit tests
+
+```bash
+uv sync --extra dev
+.venv/bin/pytest -q
+```
+
+---
+
+## Notes
+
+- NUT backend is provided through `nut2`.
+- `nut2` currently uses `telnetlib`, which emits a Python 3.12 deprecation warning for Python 3.13 removal.
+
+---
 
 ## License
 

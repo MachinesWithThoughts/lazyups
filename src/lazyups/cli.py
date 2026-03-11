@@ -5,6 +5,7 @@ from __future__ import annotations
 import click
 
 from .app import LazyUPSApp, VALID_SCREENS
+from .config import ConfigManager
 
 
 @click.command()
@@ -18,7 +19,12 @@ from .app import LazyUPSApp, VALID_SCREENS
 def main(start_screen: str) -> None:
     """Run the LazyUPS Textual interface."""
 
-    app = LazyUPSApp(start_screen=start_screen)
+    config = ConfigManager()
+    valid, error = config.validate_startup_file()
+    if not valid and error is not None:
+        raise click.ClickException(error)
+
+    app = LazyUPSApp(config=config, start_screen=start_screen)
     app.run()
 
 

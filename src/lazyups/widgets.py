@@ -54,6 +54,65 @@ class EndpointRow(Static):
             self.post_message(self.Remove(self.endpoint))
 
 
+class MonitorFieldsForm(Static):
+    """Form for selecting monitor columns."""
+
+    class Submitted(Message):
+        """Message emitted when monitor field selection is saved."""
+
+        def __init__(self, fields: list[str]) -> None:
+            super().__init__()
+            self.fields = fields
+
+    def __init__(
+        self,
+        *,
+        grouped_options: list[tuple[str, list[tuple[str, str]]]],
+        selected: list[str] | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.grouped_options = grouped_options
+        self.selected = set(selected or [])
+        self.toggles: dict[str, bool] = {}
+        self.labels: dict[str, str] = {}
+        self.button_field_map: dict[str, str] = {}
+
+    def _label(self, key: str, text: str) -> str:
+        return f"[{'x' if self.toggles.get(key, False) else ' '}] {text}"
+
+    def compose(self) -> ComposeResult:
+        yield Static("Monitor columns", classes="section-title")
+        for group_name, options in self.grouped_options:
+            yield Static(group_name, classes="monitor-fields-group-title")
+            for key, label in options:
+                safe_key = key.replace(".", "-")
+                self.toggles[key] = key in self.selected
+                self.labels[key] = label
+                button_id = f"monitor-field-{safe_key}"
+                self.button_field_map[button_id] = key
+                yield Button(
+                    self._label(key, label),
+                    id=button_id,
+                    classes="monitor-field-toggle",
+                )
+        yield Button("Save Monitor Fields", variant="primary", id="save-monitor-fields")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        button_id = event.button.id or ""
+        if button_id == "save-monitor-fields":
+            fields = [key for key, enabled in self.toggles.items() if enabled]
+            self.post_message(self.Submitted(fields))
+            return
+        if not button_id.startswith("monitor-field-"):
+            return
+        field_key = self.button_field_map.get(button_id)
+        if field_key is None or field_key not in self.toggles:
+            return
+        self.toggles[field_key] = not self.toggles[field_key]
+        event.button.label = self._label(field_key, self.labels.get(field_key, field_key))
+
+
 class EndpointForm(Static):
     """Form for adding or editing an endpoint."""
 
@@ -128,4 +187,4 @@ class EndpointForm(Static):
             self.load_endpoint(None)
 
 
-__all__ = ["EndpointRow", "EndpointForm"]
+__all__ = ["EndpointRow", "EndpointForm", "MonitorFieldsForm"]

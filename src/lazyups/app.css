@@ -14,11 +14,25 @@
 
 #content > #monitor,
 #content > #details,
-#content > #settings {
+#content > #devices,
+#content > #display-fields {
     display: block;
 }
 
 #details-layout {
+    height: 1fr;
+}
+
+.monitor-container {
+    layout: vertical;
+    height: 1fr;
+}
+
+#monitor-status {
+    margin-bottom: 1;
+}
+
+#monitor-table {
     height: 1fr;
 }
 
@@ -121,4 +135,48 @@
 
 .endpoint-form Button#submit-endpoint {
     width: auto;
+}
+
+#display-fields {
+    height: 1fr;
+}
+
+#settings-scroll-fields {
+    height: 1fr;
+    overflow-y: auto;
+}
+
+#display-fields-text {
+    width: 1fr;
+}
+
+.monitor-fields-form {
+    layout: vertical;
+    border: round $surface-lighten-1;
+    padding: 1;
+    width: 1fr;
+}
+
+.monitor-fields-form > * {
+    margin-top: 1;
+}
+
+.monitor-fields-form > :first-child {
+    margin-top: 0;
+}
+
+.monitor-fields-form .monitor-field-toggle {
+    width: 1fr;
+    height: 1;
+    content-align: left middle;
+}
+
+.monitor-fields-group-title {
+    text-style: bold;
+    margin-top: 1;
+}
+
+.monitor-field-line {
+    height: 1;
+    width: 1fr;
 }
