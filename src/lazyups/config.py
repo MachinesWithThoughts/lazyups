@@ -9,7 +9,7 @@ from typing import Iterable, List
 
 from .models import Endpoint
 
-CONFIG_FILENAME = ".lazynuts.config"
+CONFIG_FILENAME = ".lazyups.config"
 DEFAULT_CONFIG_PATH = Path.home() / CONFIG_FILENAME
 
 

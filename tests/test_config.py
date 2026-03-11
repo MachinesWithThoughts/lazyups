@@ -9,7 +9,7 @@ from lazyups.models import Endpoint
 
 
 def test_config_round_trip(tmp_path: Path) -> None:
-    config_path = tmp_path / ".lazynuts.config"
+    config_path = tmp_path / ".lazyups.config"
     manager = ConfigManager(config_path)
 
     endpoints = [Endpoint("ups1", 3493, "UPS 1"), Endpoint("ups2", 4000, None)]

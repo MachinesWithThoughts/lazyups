@@ -116,12 +116,22 @@ if "$SHOW_HELP"; then
     exit 0
 fi
 
+DID_VALIDATION=false
+
 if "$VALIDATE_RUNTIME"; then
     validate_runtime
+    DID_VALIDATION=true
 fi
 
 if "$VALIDATE_SCREENS"; then
     validate_screens
+    DID_VALIDATION=true
+fi
+
+# Validation commands are standalone checks; don't launch the main CLI afterward
+# unless explicit app arguments were also provided.
+if "$DID_VALIDATION" && [[ -z "${START_SCREEN_VALUE}" ]] && [[ ${#ARGS[@]} -eq 0 ]]; then
+    exit 0
 fi
 
 if [[ -n "${START_SCREEN_VALUE}" ]]; then

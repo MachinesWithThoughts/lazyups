@@ -14,6 +14,8 @@ class Endpoint:
     name: str | None = None
 
     def label(self) -> str:
+        if self.name:
+            return self.name
         return f"{self.host}:{self.port}"
 
 

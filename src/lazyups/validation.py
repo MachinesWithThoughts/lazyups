@@ -6,7 +6,7 @@ import importlib
 import sys
 from typing import Sequence
 
-from .app import LazyUPSApp
+from .app import LazyUPSApp, VALID_SCREENS
 
 REQUIRED_MODULES = [
     "lazyups",
@@ -54,7 +54,7 @@ class ScreenValidationApp(LazyUPSApp):
             self.exit(None)
             return
         screen_id = self._screen_sequence[self._cursor]
-        if screen_id not in {"monitor", "details", "settings"}:
+        if screen_id not in VALID_SCREENS:
             self.exit(ValueError(f"Unknown screen id '{screen_id}'"))
             return
         self.show_screen(screen_id)
