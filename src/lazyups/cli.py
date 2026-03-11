@@ -6,9 +6,11 @@ import click
 
 from .app import LazyUPSApp, VALID_SCREENS
 from .config import ConfigManager
+from .version import __version__
 
 
 @click.command()
+@click.version_option(version=__version__, prog_name="lazyups")
 @click.option(
     "--start-screen",
     type=click.Choice(VALID_SCREENS),

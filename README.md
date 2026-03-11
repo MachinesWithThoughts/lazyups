@@ -27,7 +27,7 @@ From the project root:
 ./run.sh
 ```
 
-`run.sh` will automatically create/sync `.venv` via `uv`.
+`run.sh` delegates directly to `uv run lazyups`.
 
 You can also start on a specific screen:
 
@@ -107,19 +107,19 @@ Startup validates this file. If invalid, LazyUPS exits with a clear error.
 ### Runtime import check
 
 ```bash
-./run.sh --validate-runtime
+./run-code-validations.sh --validate-runtime
 ```
 
 ### Screen rendering check
 
 ```bash
-./run.sh --validate-screens
+./run-code-validations.sh --validate-screens
 ```
 
 Or a subset:
 
 ```bash
-./run.sh --validate-screens --validation-screens settings
+./run-code-validations.sh --validate-screens --validation-screens settings
 ```
 
 ### Unit tests
@@ -127,6 +127,20 @@ Or a subset:
 ```bash
 uv sync --extra dev
 .venv/bin/pytest -q
+```
+
+---
+
+## Build a single executable (Linux)
+
+```bash
+./build-exe.sh --clean
+```
+
+Output binary:
+
+```text
+dist/lazyups
 ```
 
 ---

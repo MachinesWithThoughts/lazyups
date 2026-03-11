@@ -25,6 +25,9 @@ dev = [
     "ruff>=0.2",
     "mypy>=1.8",
 ]
+build = [
+    "pyinstaller>=6.0",
+]
 
 [project.scripts]
 lazyups = "lazyups.cli:main"
