@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 import nut2
 from textual.app import App, ComposeResult
@@ -39,6 +41,13 @@ def discover_available_fields(store: EndpointsStore) -> list[str]:
         for device in endpoint_devices:
             fields.update(device.values.keys())
     return sorted(fields)
+
+
+def append_jsonl_rows(path: Path, rows: list[dict[str, object]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        for row in rows:
+            handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
 def grouped_field_sections(fields: list[str]) -> list[tuple[str, list[str]]]:
@@ -141,12 +150,14 @@ class MonitorScreen(Static):
 
     BINDINGS = [
         ("space", "refresh_now", "Refresh now"),
+        ("s", "save_settings", "Save"),
     ]
 
     def __init__(self, store: EndpointsStore, config: ConfigManager, **kwargs) -> None:
         super().__init__(**kwargs)
         self.store = store
         self.config = config
+        self.monitor_log_path = Path.cwd() / "LazyUPS-monitoring.jsonl"
 
     def compose(self) -> ComposeResult:
         yield Vertical(
@@ -189,6 +200,8 @@ class MonitorScreen(Static):
 
         errors: list[str] = []
         row_count = 0
+        captured_at = datetime.now()
+        snapshot_rows: list[dict[str, object]] = []
 
         for endpoint in self.store.list():
             endpoint_devices, endpoint_errors = fetch_endpoint_devices(endpoint)
@@ -197,6 +210,19 @@ class MonitorScreen(Static):
                 values = self.build_row_values(device)
                 table.add_row(device.upsc_target(), *(values.get(field, "-") for field in fields))
                 row_count += 1
+                snapshot_rows.append(
+                    {
+                        "captured_at": captured_at.isoformat(),
+                        "target": device.upsc_target(),
+                        "endpoint": {
+                            "name": endpoint.name,
+                            "host": endpoint.host,
+                            "port": endpoint.port,
+                        },
+                        "description": device.description,
+                        "monitor_values": {field: values.get(field, "-") for field in fields},
+                    }
+                )
 
         if row_count == 0:
             if errors:
@@ -205,17 +231,52 @@ class MonitorScreen(Static):
                 status.update("No devices found. Add endpoints in Settings.")
             return
 
-        updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        append_jsonl_rows(self.monitor_log_path, snapshot_rows)
+
+        updated_at = captured_at.strftime("%Y-%m-%d %H:%M:%S")
         if errors:
             status.update(
                 f"Showing {row_count} device(s) with {len(errors)} error(s). "
-                f"Refresh every {self.poll_interval}s · updated {updated_at}"
+                f"Refresh every {self.poll_interval}s · updated {updated_at} (saved)"
             )
         else:
-            status.update(f"Showing {row_count} device(s). Refresh every {self.poll_interval}s · updated {updated_at}")
+            status.update(
+                f"Showing {row_count} device(s). Refresh every {self.poll_interval}s · updated {updated_at} (saved)"
+            )
 
     def action_refresh_now(self) -> None:
         self.refresh_monitor()
+
+    def action_save_settings(self) -> None:
+        status = self.query_one("#monitor-status", Static)
+        fields = self.selected_fields()
+        captured_at = datetime.now()
+        rows: list[dict[str, object]] = []
+
+        for endpoint in self.store.list():
+            endpoint_devices, _ = fetch_endpoint_devices(endpoint)
+            for device in endpoint_devices:
+                values = self.build_row_values(device)
+                rows.append(
+                    {
+                        "captured_at": captured_at.isoformat(),
+                        "target": device.upsc_target(),
+                        "endpoint": {
+                            "name": endpoint.name,
+                            "host": endpoint.host,
+                            "port": endpoint.port,
+                        },
+                        "description": device.description,
+                        "monitor_values": {field: values.get(field, "-") for field in fields},
+                    }
+                )
+
+        if not rows:
+            status.update("Save skipped: no devices available")
+            return
+
+        append_jsonl_rows(self.monitor_log_path, rows)
+        status.update(f"Saved {len(rows)} device snapshot(s) to {self.monitor_log_path}")
 
     def on_mount(self) -> None:
         table = self.query_one("#monitor-table", DataTable)
@@ -229,11 +290,18 @@ class MonitorScreen(Static):
 class DetailsScreen(Static):
     """Details view for querying `upsc name@host` data."""
 
+    BINDINGS = [
+        ("s", "save_details", "Save"),
+        ("space", "refresh_now", "Refresh now"),
+    ]
+
     def __init__(self, store: EndpointsStore, config: ConfigManager, **kwargs) -> None:
         super().__init__(**kwargs)
         self.store = store
         self.config = config
         self.devices: list[DeviceSnapshot] = []
+        self.selected_index = 0
+        self.details_log_path = Path.cwd() / "LazyUPS-details.jsonl"
 
     def compose(self) -> ComposeResult:
         yield Horizontal(
@@ -297,9 +365,37 @@ class DetailsScreen(Static):
 
         selected_fields = set(self.config.load_monitor_fields())
         if self.devices:
-            output.update(self.format_device_details(self.devices[0], selected_fields))
+            self.selected_index = 0
+            output.update(self.format_device_details(self.devices[self.selected_index], selected_fields))
         else:
+            self.selected_index = 0
             output.update(self.format_errors(errors))
+
+    def action_refresh_now(self) -> None:
+        self.refresh_details()
+
+    def action_save_details(self) -> None:
+        output = self.query_one("#details-output-text", Static)
+        if not self.devices:
+            output.update("Save skipped: no device selected")
+            return
+
+        self.selected_index = max(0, min(self.selected_index, len(self.devices) - 1))
+        device = self.devices[self.selected_index]
+        row = {
+            "captured_at": datetime.now().isoformat(),
+            "target": device.upsc_target(),
+            "endpoint": {
+                "name": device.endpoint.name,
+                "host": device.endpoint.host,
+                "port": device.endpoint.port,
+            },
+            "description": device.description,
+            "values": {key: str(value) for key, value in device.values.items()},
+        }
+        append_jsonl_rows(self.details_log_path, [row])
+        selected_fields = set(self.config.load_monitor_fields())
+        output.update(self.format_device_details(device, selected_fields) + "\n\n[green]Saved[/green]")
 
     def on_mount(self) -> None:
         self.refresh_details()
@@ -313,9 +409,10 @@ class DetailsScreen(Static):
             return
         index = int(widget_id.removeprefix("details-device-"))
         if 0 <= index < len(self.devices):
+            self.selected_index = index
             selected_fields = set(self.config.load_monitor_fields())
             self.query_one("#details-output-text", Static).update(
-                self.format_device_details(self.devices[index], selected_fields)
+                self.format_device_details(self.devices[self.selected_index], selected_fields)
             )
 
 
@@ -491,6 +588,8 @@ class LazyUPSApp(App):
 
     BINDINGS = [
         ("q", "quit", "Quit"),
+        ("space", "refresh_now", "[space] refresh"),
+        ("s", "save_settings", "[s]ave"),
     ]
 
     def __init__(
@@ -521,6 +620,23 @@ class LazyUPSApp(App):
                 yield self.devices_screen
                 yield self.display_fields_screen
         yield Footer()
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        if action in {"refresh_now", "save_settings"}:
+            return self.monitor_screen.display or self.details_screen.display
+        return None
+
+    def action_refresh_now(self) -> None:
+        if self.monitor_screen.display:
+            self.monitor_screen.action_refresh_now()
+        elif self.details_screen.display:
+            self.details_screen.action_refresh_now()
+
+    def action_save_settings(self) -> None:
+        if self.monitor_screen.display:
+            self.monitor_screen.action_save_settings()
+        elif self.details_screen.display:
+            self.details_screen.action_save_details()
 
     def on_mount(self) -> None:
         self.show_screen(self.start_screen)
