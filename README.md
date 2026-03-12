@@ -78,10 +78,6 @@ Example:
 
 If the file is missing, LazyUPS creates/updates it automatically when you save device or field settings.
 
-## Version
-
-Current version: `01.01.00`
-
 ## Screenshots
 
 ### Monitor
