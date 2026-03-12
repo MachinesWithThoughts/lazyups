@@ -41,10 +41,10 @@ def test_details_screen_renders_upsc_device_details() -> None:
         values={"battery.charge": "100", "ups.status": "OL"},
     )
 
-    rendered = DetailsScreen.format_device_details(device)
+    rendered = DetailsScreen.format_device_details(device, {"battery.charge"})
     assert "upsc ups@ups.example.com" in rendered
     assert "Endpoint: Rack UPS (ups.example.com:3493)" in rendered
-    assert "battery.charge: 100" in rendered
+    assert "[green]battery.charge[/green]: 100" in rendered
     assert "ups.status: OL" in rendered
 
 

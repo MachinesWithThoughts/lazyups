@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 
 import nut2
 from textual.app import App, ComposeResult
@@ -137,6 +138,10 @@ class MonitorScreen(Static):
 
     poll_interval = reactive(5)
 
+    BINDINGS = [
+        ("space", "refresh_now", "Refresh now"),
+    ]
+
     def __init__(self, store: EndpointsStore, config: ConfigManager, **kwargs) -> None:
         super().__init__(**kwargs)
         self.store = store
@@ -199,10 +204,17 @@ class MonitorScreen(Static):
                 status.update("No devices found. Add endpoints in Settings.")
             return
 
+        updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if errors:
-            status.update(f"Showing {row_count} device(s) with {len(errors)} error(s).")
+            status.update(
+                f"Showing {row_count} device(s) with {len(errors)} error(s). "
+                f"Refresh every {self.poll_interval}s · updated {updated_at}"
+            )
         else:
-            status.update(f"Showing {row_count} device(s). Refresh every {self.poll_interval}s.")
+            status.update(f"Showing {row_count} device(s). Refresh every {self.poll_interval}s · updated {updated_at}")
+
+    def action_refresh_now(self) -> None:
+        self.refresh_monitor()
 
     def on_mount(self) -> None:
         table = self.query_one("#monitor-table", DataTable)
@@ -216,9 +228,10 @@ class MonitorScreen(Static):
 class DetailsScreen(Static):
     """Details view for querying `upsc name@host` data."""
 
-    def __init__(self, store: EndpointsStore, **kwargs) -> None:
+    def __init__(self, store: EndpointsStore, config: ConfigManager, **kwargs) -> None:
         super().__init__(**kwargs)
         self.store = store
+        self.config = config
         self.devices: list[DeviceSnapshot] = []
 
     def compose(self) -> ComposeResult:
@@ -237,14 +250,19 @@ class DetailsScreen(Static):
         )
 
     @staticmethod
-    def format_device_details(device: DeviceSnapshot) -> str:
+    def format_device_details(device: DeviceSnapshot, highlighted_fields: set[str] | None = None) -> str:
+        highlight = highlighted_fields or set()
         lines = [
             f"upsc {device.upsc_target()}",
             f"Endpoint: {device.endpoint.label()} ({device.endpoint.host}:{device.endpoint.port})",
             f"Description: {device.description or '(none)'}",
             "",
         ]
-        lines.extend(f"{key}: {value}" for key, value in device.values.items())
+        for key, value in device.values.items():
+            if key in highlight:
+                lines.append(f"[green]{key}[/green]: {value}")
+            else:
+                lines.append(f"{key}: {value}")
         return "\n".join(lines).rstrip()
 
     @staticmethod
@@ -269,8 +287,9 @@ class DetailsScreen(Static):
         for index, device in enumerate(self.devices):
             list_view.mount(ListItem(Static(device.menu_label(), id=f"details-device-{index}")))
 
+        selected_fields = set(self.config.load_monitor_fields())
         if self.devices:
-            output.update(self.format_device_details(self.devices[0]))
+            output.update(self.format_device_details(self.devices[0], selected_fields))
         else:
             output.update(self.format_errors(errors))
 
@@ -286,7 +305,10 @@ class DetailsScreen(Static):
             return
         index = int(widget_id.removeprefix("details-device-"))
         if 0 <= index < len(self.devices):
-            self.query_one("#details-output-text", Static).update(self.format_device_details(self.devices[index]))
+            selected_fields = set(self.config.load_monitor_fields())
+            self.query_one("#details-output-text", Static).update(
+                self.format_device_details(self.devices[index], selected_fields)
+            )
 
 
 class DevicesScreen(Static):
@@ -446,7 +468,7 @@ class LazyUPSApp(App):
             yield Menu()
             with Container(id="content"):
                 self.monitor_screen = MonitorScreen(self.store, self.config, id="monitor")
-                self.details_screen = DetailsScreen(self.store, id="details")
+                self.details_screen = DetailsScreen(self.store, self.config, id="details")
                 self.devices_screen = DevicesScreen(self.store, self.config, id="devices")
                 self.display_fields_screen = DisplayFieldsScreen(self.store, id="display-fields")
                 yield self.monitor_screen
