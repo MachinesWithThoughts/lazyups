@@ -158,6 +158,7 @@ class MonitorScreen(Static):
         self.store = store
         self.config = config
         self.monitor_log_path = Path.cwd() / "LazyUPS-monitoring.jsonl"
+        self.continuous_save_enabled = False
 
     def compose(self) -> ComposeResult:
         yield Vertical(
@@ -231,52 +232,31 @@ class MonitorScreen(Static):
                 status.update("No devices found. Add endpoints in Settings.")
             return
 
-        append_jsonl_rows(self.monitor_log_path, snapshot_rows)
+        if self.continuous_save_enabled:
+            append_jsonl_rows(self.monitor_log_path, snapshot_rows)
 
         updated_at = captured_at.strftime("%Y-%m-%d %H:%M:%S")
+        saved_suffix = " (saved)" if self.continuous_save_enabled else ""
         if errors:
             status.update(
                 f"Showing {row_count} device(s) with {len(errors)} error(s). "
-                f"Refresh every {self.poll_interval}s · updated {updated_at} (saved)"
+                f"Refresh every {self.poll_interval}s · updated {updated_at}{saved_suffix}"
             )
         else:
             status.update(
-                f"Showing {row_count} device(s). Refresh every {self.poll_interval}s · updated {updated_at} (saved)"
+                f"Showing {row_count} device(s). Refresh every {self.poll_interval}s · updated {updated_at}{saved_suffix}"
             )
 
     def action_refresh_now(self) -> None:
         self.refresh_monitor()
 
     def action_save_settings(self) -> None:
-        status = self.query_one("#monitor-status", Static)
-        fields = self.selected_fields()
-        captured_at = datetime.now()
-        rows: list[dict[str, object]] = []
-
-        for endpoint in self.store.list():
-            endpoint_devices, _ = fetch_endpoint_devices(endpoint)
-            for device in endpoint_devices:
-                values = self.build_row_values(device)
-                rows.append(
-                    {
-                        "captured_at": captured_at.isoformat(),
-                        "target": device.upsc_target(),
-                        "endpoint": {
-                            "name": endpoint.name,
-                            "host": endpoint.host,
-                            "port": endpoint.port,
-                        },
-                        "description": device.description,
-                        "monitor_values": {field: values.get(field, "-") for field in fields},
-                    }
-                )
-
-        if not rows:
-            status.update("Save skipped: no devices available")
-            return
-
-        append_jsonl_rows(self.monitor_log_path, rows)
-        status.update(f"Saved {len(rows)} device snapshot(s) to {self.monitor_log_path}")
+        self.continuous_save_enabled = not self.continuous_save_enabled
+        state = "enabled" if self.continuous_save_enabled else "disabled"
+        self.query_one("#monitor-status", Static).update(
+            f"Auto-save {state} (writes refresh snapshots to {self.monitor_log_path})"
+        )
+        self.refresh_monitor()
 
     def on_mount(self) -> None:
         table = self.query_one("#monitor-table", DataTable)
