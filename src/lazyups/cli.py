@@ -12,13 +12,13 @@ from .version import __version__
 @click.command()
 @click.version_option(version=__version__, prog_name="lazyups")
 @click.option(
-    "--start-screen",
+    "--screen",
     type=click.Choice(VALID_SCREENS),
     default="monitor",
     show_default=True,
     help="Start the application on the specified screen.",
 )
-def main(start_screen: str) -> None:
+def main(screen: str) -> None:
     """Run the LazyUPS Textual interface."""
 
     config = ConfigManager()
@@ -26,7 +26,7 @@ def main(start_screen: str) -> None:
     if not valid and error is not None:
         raise click.ClickException(error)
 
-    app = LazyUPSApp(config=config, start_screen=start_screen)
+    app = LazyUPSApp(config=config, start_screen=screen)
     app.run()
 
 

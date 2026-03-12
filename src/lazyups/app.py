@@ -18,8 +18,8 @@ from .store import EndpointsStore
 from .widgets import EndpointForm, EndpointRow
 from .version import __version__
 
-VALID_SCREENS = ("monitor", "details", "devices", "display-fields", "settings")
-SCREEN_TO_MENU_INDEX = {"monitor": 0, "details": 1, "devices": 3, "display-fields": 4, "settings": 3}
+VALID_SCREENS = ("monitor", "details", "devices", "fields", "settings")
+SCREEN_TO_MENU_INDEX = {"monitor": 0, "details": 1, "devices": 3, "fields": 4, "settings": 3}
 BASE_MONITOR_FIELDS: list[str] = [
     "model",
     "battery.charge",
@@ -127,7 +127,7 @@ class Menu(Static):
             ListItem(Static("Details", id="menu-details")),
             ListItem(Static("Settings", id="menu-settings-heading")),
             ListItem(Static("- Devices", id="menu-devices")),
-            ListItem(Static("- Fields", id="menu-display-fields")),
+            ListItem(Static("- Fields", id="menu-fields")),
         )
 
     def compose(self) -> ComposeResult:
@@ -384,7 +384,7 @@ class DisplayFieldsScreen(Static):
 
     def compose(self) -> ComposeResult:
         yield VerticalScroll(
-            Container(id="display-fields-text"),
+            Container(id="fields-text"),
             id="settings-scroll-fields",
             can_focus=True,
         )
@@ -439,7 +439,7 @@ class DisplayFieldsScreen(Static):
         self._save_toggled_field(field)
 
     def refresh_fields_form(self) -> None:
-        output = self.query_one("#display-fields-text", Container)
+        output = self.query_one("#fields-text", Container)
         output.remove_children()
         self.field_widget_map.clear()
 
@@ -499,7 +499,7 @@ class LazyUPSApp(App):
                 self.monitor_screen = MonitorScreen(self.store, self.config, id="monitor")
                 self.details_screen = DetailsScreen(self.store, self.config, id="details")
                 self.devices_screen = DevicesScreen(self.store, self.config, id="devices")
-                self.display_fields_screen = DisplayFieldsScreen(self.store, id="display-fields")
+                self.display_fields_screen = DisplayFieldsScreen(self.store, id="fields")
                 yield self.monitor_screen
                 yield self.details_screen
                 yield self.devices_screen
@@ -535,9 +535,9 @@ class LazyUPSApp(App):
         elif widget_id == "menu-devices":
             self.show_screen("devices")
             self.query_one("#devices", DevicesScreen).refresh_endpoints()
-        elif widget_id == "menu-display-fields":
-            self.show_screen("display-fields")
-            self.query_one("#display-fields", DisplayFieldsScreen).refresh_fields_form()
+        elif widget_id == "menu-fields":
+            self.show_screen("fields")
+            self.query_one("#fields", DisplayFieldsScreen).refresh_fields_form()
 
 
 __all__ = [

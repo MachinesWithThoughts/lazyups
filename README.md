@@ -32,10 +32,10 @@ From the project root:
 You can also start on a specific screen:
 
 ```bash
-./run.sh --start-screen monitor
-./run.sh --start-screen details
-./run.sh --start-screen devices
-./run.sh --start-screen display-fields
+./run.sh --screen monitor
+./run.sh --screen details
+./run.sh --screen devices
+./run.sh --screen fields
 ```
 
 ---
