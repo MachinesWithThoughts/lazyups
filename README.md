@@ -40,9 +40,47 @@ Start on a specific page:
 ./run.sh --screen fields
 ```
 
+## Configuration (`.lazyups.config`)
+
+LazyUPS stores its settings in a JSON file named `.lazyups.config`.
+
+Default location:
+
+```text
+~/.lazyups.config
+```
+
+It currently stores:
+
+- `endpoints` — list of NUT hosts/ports/names from **Settings → Devices**
+- `monitor_fields` — selected fields from **Settings → Fields**
+
+Example:
+
+```json
+{
+  "endpoints": [
+    {
+      "host": "192.168.1.20",
+      "port": 3493,
+      "name": "rack-nut"
+    }
+  ],
+  "monitor_fields": [
+    "battery.charge",
+    "battery.runtime",
+    "input.voltage",
+    "ups.load",
+    "ups.status"
+  ]
+}
+```
+
+If the file is missing, LazyUPS creates/updates it automatically when you save device or field settings.
+
 ## Version
 
-Current version: `01.00.00`
+Current version: `01.01.00`
 
 ## Screenshots
 
