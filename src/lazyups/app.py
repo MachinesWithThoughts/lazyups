@@ -384,10 +384,13 @@ class DisplayFieldsScreen(Static):
     ]
 
     def compose(self) -> ComposeResult:
-        yield VerticalScroll(
-            Container(id="fields-text"),
-            id="settings-scroll-fields",
-            can_focus=True,
+        yield Vertical(
+            VerticalScroll(
+                Container(id="fields-text"),
+                id="settings-scroll-fields",
+                can_focus=True,
+            ),
+            Static("Tip: click a field to toggle whether it displays on Monitor/Details.", id="fields-tip"),
         )
 
     def on_mount(self) -> None:
@@ -468,6 +471,7 @@ class DisplayFieldsScreen(Static):
                 else:
                     output.mount(Static(f"  {field}", id=widget_id, classes="monitor-field-line"))
             output.mount(Static(""))
+
 
 
 class LazyUPSApp(App):
