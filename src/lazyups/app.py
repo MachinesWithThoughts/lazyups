@@ -568,6 +568,8 @@ class LazyUPSApp(App):
 
     BINDINGS = [
         ("q", "quit", "Quit"),
+        ("ctrl+q", "quit", "Quit"),
+        ("escape", "quit", "Quit"),
         ("space", "refresh_now", "[space] refresh"),
         ("s", "save_settings", "[s]ave"),
     ]
@@ -605,6 +607,9 @@ class LazyUPSApp(App):
         if action in {"refresh_now", "save_settings"}:
             return self.monitor_screen.display or self.details_screen.display
         return None
+
+    def action_quit(self) -> None:
+        self.exit()
 
     def action_refresh_now(self) -> None:
         if self.monitor_screen.display:
