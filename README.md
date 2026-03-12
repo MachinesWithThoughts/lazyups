@@ -37,6 +37,24 @@ Start on a specific page:
 
 Current version: `01.00.00`
 
+## Screenshots
+
+### Monitor
+
+![Monitor](screenshots/monitor.svg)
+
+### Details
+
+![Details](screenshots/details.svg)
+
+### Devices
+
+![Devices](screenshots/devices.svg)
+
+### Fields
+
+![Fields](screenshots/fields.svg)
+
 ## Development
 
 Run tests:
