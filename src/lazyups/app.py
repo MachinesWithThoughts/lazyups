@@ -386,7 +386,6 @@ class DisplayFieldsScreen(Static):
     def compose(self) -> ComposeResult:
         yield Vertical(
             VerticalScroll(
-                Container(id="fields-text"),
                 id="settings-scroll-fields",
                 can_focus=True,
             ),
@@ -395,9 +394,12 @@ class DisplayFieldsScreen(Static):
 
     def on_mount(self) -> None:
         self.refresh_fields_form()
-        self.query_one("#settings-scroll-fields", VerticalScroll).focus()
+        self.focus_scroller()
 
     def on_show(self) -> None:
+        self.focus_scroller()
+
+    def focus_scroller(self) -> None:
         self.query_one("#settings-scroll-fields", VerticalScroll).focus()
 
     def _scroller(self) -> VerticalScroll:
@@ -443,8 +445,8 @@ class DisplayFieldsScreen(Static):
         self._save_toggled_field(field)
 
     def refresh_fields_form(self) -> None:
-        output = self.query_one("#fields-text", Container)
-        output.remove_children()
+        scroller = self.query_one("#settings-scroll-fields", VerticalScroll)
+        scroller.remove_children()
         self.field_widget_map.clear()
         self._field_render_token += 1
 
@@ -453,24 +455,24 @@ class DisplayFieldsScreen(Static):
         selected = set(self.app.config.load_monitor_fields())
 
         if not sections:
-            output.mount(Static("No fields discovered yet. Add a device in Settings > Devices."))
+            scroller.mount(Static("No fields discovered yet. Add a device in Settings > Devices."))
             return
 
-        output.mount(Static("Available fields (deduplicated)"))
-        output.mount(Static(""))
+        scroller.mount(Static("Available fields (deduplicated)"))
+        scroller.mount(Static(""))
 
         field_index = 0
         for section_name, section_fields in sections:
-            output.mount(Static(section_name))
+            scroller.mount(Static(section_name))
             for field in section_fields:
                 widget_id = f"display-field-{self._field_render_token}-{field_index}"
                 field_index += 1
                 self.field_widget_map[widget_id] = field
                 if field in selected:
-                    output.mount(Static(f"  [green]{field}[/green]", id=widget_id, classes="monitor-field-line"))
+                    scroller.mount(Static(f"  [green]{field}[/green]", id=widget_id, classes="monitor-field-line"))
                 else:
-                    output.mount(Static(f"  {field}", id=widget_id, classes="monitor-field-line"))
-            output.mount(Static(""))
+                    scroller.mount(Static(f"  {field}", id=widget_id, classes="monitor-field-line"))
+            scroller.mount(Static(""))
 
 
 
@@ -543,7 +545,9 @@ class LazyUPSApp(App):
             self.query_one("#devices", DevicesScreen).refresh_endpoints()
         elif widget_id == "menu-fields":
             self.show_screen("fields")
-            self.query_one("#fields", DisplayFieldsScreen).refresh_fields_form()
+            fields_screen = self.query_one("#fields", DisplayFieldsScreen)
+            fields_screen.refresh_fields_form()
+            fields_screen.focus_scroller()
 
 
 __all__ = [

@@ -150,10 +150,6 @@
     overflow-y: auto;
 }
 
-#fields-text {
-    width: 1fr;
-}
-
 #fields-tip {
     margin-top: 1;
     color: $text-muted;
