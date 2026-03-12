@@ -286,7 +286,7 @@ class DetailsScreen(Static):
             errors.extend(endpoint_errors)
 
         for index, device in enumerate(self.devices):
-            list_view.mount(ListItem(Static(device.menu_label(), id=f"details-device-{index}")))
+            list_view.mount(ListItem(Static(f"• {device.menu_label()}", id=f"details-device-{index}")))
 
         selected_fields = set(self.config.load_monitor_fields())
         if self.devices:
