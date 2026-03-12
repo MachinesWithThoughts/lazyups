@@ -372,6 +372,7 @@ class DisplayFieldsScreen(Static):
         super().__init__(**kwargs)
         self.store = store
         self.field_widget_map: dict[str, str] = {}
+        self._field_render_token = 0
 
     BINDINGS = [
         ("up", "scroll_up", "Up"),
@@ -442,6 +443,7 @@ class DisplayFieldsScreen(Static):
         output = self.query_one("#fields-text", Container)
         output.remove_children()
         self.field_widget_map.clear()
+        self._field_render_token += 1
 
         fields = discover_available_fields(self.store)
         sections = grouped_field_sections(fields)
@@ -458,7 +460,7 @@ class DisplayFieldsScreen(Static):
         for section_name, section_fields in sections:
             output.mount(Static(section_name))
             for field in section_fields:
-                widget_id = f"display-field-{field_index}"
+                widget_id = f"display-field-{self._field_render_token}-{field_index}"
                 field_index += 1
                 self.field_widget_map[widget_id] = field
                 if field in selected:
