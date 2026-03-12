@@ -13,9 +13,16 @@ Terminal UI for monitoring NUT (`upsc`) UPS devices.
 
 ## Install
 
+Build the executable:
+
 ```bash
-cd /home/tamclaw/projects/systems/lazyups
-uv sync
+build-exectuable.exe
+```
+
+Then install it system-wide:
+
+```bash
+sudo cp dist/lazyups /usr/local/bin
 ```
 
 ## Run
