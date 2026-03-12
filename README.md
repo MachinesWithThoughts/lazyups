@@ -96,36 +96,3 @@ If the file is missing, LazyUPS creates/updates it automatically when you save d
 
 ![Fields](screenshots/fields.svg)
 
-## Development
-
-Run tests:
-
-```bash
-./.venv/bin/python -m pytest -q
-```
-
-Build executable:
-
-```bash
-./build-exe.sh
-```
-
-## Release/version consistency
-
-Check app/package/tag consistency:
-
-```bash
-./check-version-sync.sh
-```
-
-Tag format:
-
-```text
-v<app-version>
-```
-
-Example:
-
-```text
-v01.00.00
-```
