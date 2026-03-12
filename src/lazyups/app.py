@@ -486,6 +486,7 @@ class DisplayFieldsScreen(Static):
 class LazyUPSApp(App):
     """Main Textual application."""
 
+    TITLE = "LazyUPS"
     CSS_PATH = "app.css"
 
     BINDINGS = [
