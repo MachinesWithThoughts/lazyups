@@ -8,6 +8,7 @@ from datetime import datetime
 import nut2
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
+from textual.events import Click
 from textual.reactive import reactive
 from textual.widgets import DataTable, Footer, Header, ListItem, ListView, Static
 
@@ -370,6 +371,7 @@ class DisplayFieldsScreen(Static):
     def __init__(self, store: EndpointsStore, **kwargs) -> None:
         super().__init__(**kwargs)
         self.store = store
+        self.field_widget_map: dict[str, str] = {}
 
     BINDINGS = [
         ("up", "scroll_up", "Up"),
@@ -382,7 +384,7 @@ class DisplayFieldsScreen(Static):
 
     def compose(self) -> ComposeResult:
         yield VerticalScroll(
-            Static("Loading fields...", id="display-fields-text"),
+            Container(id="display-fields-text"),
             id="settings-scroll-fields",
             can_focus=True,
         )
@@ -415,28 +417,55 @@ class DisplayFieldsScreen(Static):
     def action_scroll_end(self) -> None:
         self._scroller().scroll_end(animate=False)
 
+    def _save_toggled_field(self, field: str) -> None:
+        current_fields = self.app.config.load_monitor_fields()
+        if field in current_fields:
+            updated_fields = [item for item in current_fields if item != field]
+        else:
+            updated_fields = [*current_fields, field]
+
+        self.app.config.save_monitor_fields(updated_fields)
+        self.refresh_fields_form()
+
+        monitor_screen = self.app.query_one("#monitor", MonitorScreen)
+        monitor_screen.refresh_monitor()
+
+    def on_click(self, event: Click) -> None:
+        widget_id = event.widget.id or ""
+        field = self.field_widget_map.get(widget_id)
+        if field is None:
+            return
+        event.stop()
+        self._save_toggled_field(field)
+
     def refresh_fields_form(self) -> None:
-        output = self.query_one("#display-fields-text", Static)
+        output = self.query_one("#display-fields-text", Container)
+        output.remove_children()
+        self.field_widget_map.clear()
 
         fields = discover_available_fields(self.store)
         sections = grouped_field_sections(fields)
         selected = set(self.app.config.load_monitor_fields())
 
         if not sections:
-            output.update("No fields discovered yet. Add a device in Settings > Devices.")
+            output.mount(Static("No fields discovered yet. Add a device in Settings > Devices."))
             return
 
-        lines = ["Available fields (deduplicated)", ""]
-        for section_name, section_fields in sections:
-            lines.append(section_name)
-            for field in section_fields:
-                if field in selected:
-                    lines.append(f"  [green]{field}[/green]")
-                else:
-                    lines.append(f"  {field}")
-            lines.append("")
+        output.mount(Static("Available fields (deduplicated)"))
+        output.mount(Static(""))
 
-        output.update("\n".join(lines).rstrip())
+        field_index = 0
+        for section_name, section_fields in sections:
+            output.mount(Static(section_name))
+            for field in section_fields:
+                widget_id = f"display-field-{field_index}"
+                field_index += 1
+                self.field_widget_map[widget_id] = field
+                if field in selected:
+                    output.mount(Static(f"  [green]{field}[/green]", id=widget_id, classes="monitor-field-line"))
+                else:
+                    output.mount(Static(f"  {field}", id=widget_id, classes="monitor-field-line"))
+            output.mount(Static(""))
 
 
 class LazyUPSApp(App):
