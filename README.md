@@ -4,7 +4,7 @@ Terminal UI for monitoring NUT (`upsc`) UPS devices.
 
 ## Features
 
-- Monitor view with live polling and refresh timestamp
+- Monitor view with live polling
 - Details view for full `upsc <ups>@<host>` output
 - Devices management (add/edit/remove endpoints)
 - Fields view to control which values appear in Monitor/Details
