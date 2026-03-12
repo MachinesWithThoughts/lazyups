@@ -288,6 +288,13 @@ class DetailsScreen(Static):
         for index, device in enumerate(self.devices):
             list_view.mount(ListItem(Static(f"• {device.menu_label()}", id=f"details-device-{index}")))
 
+        sidebar = self.query_one(".details-sidebar", Vertical)
+        if self.devices:
+            longest_label = max(len(f"• {device.menu_label()}") for device in self.devices)
+            sidebar.styles.width = max(24, min(60, longest_label + 2))
+        else:
+            sidebar.styles.width = 24
+
         selected_fields = set(self.config.load_monitor_fields())
         if self.devices:
             output.update(self.format_device_details(self.devices[0], selected_fields))
