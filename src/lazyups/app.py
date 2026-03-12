@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 
 import nut2
+from textual import events
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, Vertical, VerticalScroll
 from textual.events import Click
@@ -610,6 +611,11 @@ class LazyUPSApp(App):
 
     def action_quit(self) -> None:
         self.exit()
+
+    def on_key(self, event: events.Key) -> None:
+        if event.key in {"q", "escape", "ctrl+q", "ctrl+c"}:
+            event.stop()
+            self.exit()
 
     def action_refresh_now(self) -> None:
         if self.monitor_screen.display:
