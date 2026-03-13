@@ -8,4 +8,12 @@ if ! command -v uv >/dev/null 2>&1; then
     exit 127
 fi
 
+for arg in "$@"; do
+    case "$arg" in
+        --validate-runtime|--validate-screens|--validation-screens)
+            exec ./run-code-validations.sh "$@"
+            ;;
+    esac
+done
+
 exec uv run lazyups "$@"
