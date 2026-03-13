@@ -19,8 +19,16 @@
     display: block;
 }
 
+#details > Vertical {
+    height: 1fr;
+}
+
 #details-layout {
     height: 1fr;
+}
+
+#details-status {
+    margin-bottom: 1;
 }
 
 .monitor-container {

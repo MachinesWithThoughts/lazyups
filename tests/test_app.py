@@ -32,6 +32,16 @@ def test_details_screen_shows_empty_state() -> None:
     assert DetailsScreen.format_errors([]) == "No endpoints configured yet. Add one in Settings."
 
 
+def test_details_screen_status_without_errors() -> None:
+    status = DetailsScreen.format_status(2, 0, 5, "2026-03-12 19:20:00")
+    assert status == "Showing 2 device(s). Refresh every 5s · updated 2026-03-12 19:20:00"
+
+
+def test_details_screen_status_with_errors() -> None:
+    status = DetailsScreen.format_status(2, 1, 5, "2026-03-12 19:20:00")
+    assert status == "Showing 2 device(s) with 1 error(s). Refresh every 5s · updated 2026-03-12 19:20:00"
+
+
 def test_details_screen_renders_upsc_device_details() -> None:
     endpoint = Endpoint("ups.example.com", 3493, "Rack UPS")
     device = DeviceSnapshot(

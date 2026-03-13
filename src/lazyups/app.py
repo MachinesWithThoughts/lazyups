@@ -271,6 +271,8 @@ class MonitorScreen(Static):
 class DetailsScreen(Static):
     """Details view for querying `upsc name@host` data."""
 
+    poll_interval = reactive(5)
+
     BINDINGS = [
         ("s", "save_details", "Save"),
         ("space", "refresh_now", "Refresh now"),
@@ -285,18 +287,21 @@ class DetailsScreen(Static):
         self.details_log_path = Path.cwd() / "LazyUPS-details.jsonl"
 
     def compose(self) -> ComposeResult:
-        yield Horizontal(
-            Vertical(
-                Static("Discovered devices", classes="section-title"),
-                ListView(id="details-device-list", classes="details-device-list"),
-                classes="details-sidebar",
+        yield Vertical(
+            Static("Polling UPS devices...", id="details-status"),
+            Horizontal(
+                Vertical(
+                    Static("Discovered devices", classes="section-title"),
+                    ListView(id="details-device-list", classes="details-device-list"),
+                    classes="details-sidebar",
+                ),
+                VerticalScroll(
+                    Static("Loading details...", id="details-output-text"),
+                    id="details-output",
+                    classes="details-output",
+                ),
+                id="details-layout",
             ),
-            VerticalScroll(
-                Static("Loading details...", id="details-output-text"),
-                id="details-output",
-                classes="details-output",
-            ),
-            id="details-layout",
         )
 
     @staticmethod
@@ -321,13 +326,25 @@ class DetailsScreen(Static):
             return "No endpoints configured yet. Add one in Settings."
         return "Unable to load device details:\n\n" + "\n".join(f"- {item}" for item in errors)
 
+    @staticmethod
+    def format_status(row_count: int, error_count: int, poll_interval: int, updated_at: str) -> str:
+        if error_count:
+            return (
+                f"Showing {row_count} device(s) with {error_count} error(s). "
+                f"Refresh every {poll_interval}s · updated {updated_at}"
+            )
+        return f"Showing {row_count} device(s). Refresh every {poll_interval}s · updated {updated_at}"
+
     def refresh_details(self) -> None:
         list_view = self.query_one("#details-device-list", ListView)
         output = self.query_one("#details-output-text", Static)
+        status = self.query_one("#details-status", Static)
 
         list_view.remove_children()
+        previous_selected_index = self.selected_index
         self.devices = []
         errors: list[str] = []
+        captured_at = datetime.now()
 
         for endpoint in self.store.list():
             endpoint_devices, endpoint_errors = fetch_endpoint_devices(endpoint)
@@ -346,11 +363,23 @@ class DetailsScreen(Static):
 
         selected_fields = set(self.config.load_monitor_fields())
         if self.devices:
-            self.selected_index = 0
+            self.selected_index = max(0, min(previous_selected_index, len(self.devices) - 1))
             output.update(self.format_device_details(self.devices[self.selected_index], selected_fields))
+            list_view.index = self.selected_index
         else:
             self.selected_index = 0
             output.update(self.format_errors(errors))
+
+        updated_at = captured_at.strftime("%Y-%m-%d %H:%M:%S")
+        row_count = len(self.devices)
+        if row_count == 0:
+            if errors:
+                status.update("Polling failed: " + " | ".join(errors))
+            else:
+                status.update("No devices found. Add endpoints in Settings.")
+            return
+
+        status.update(self.format_status(row_count, len(errors), self.poll_interval, updated_at))
 
     def action_refresh_now(self) -> None:
         self.refresh_details()
@@ -380,6 +409,7 @@ class DetailsScreen(Static):
 
     def on_mount(self) -> None:
         self.refresh_details()
+        self.set_interval(self.poll_interval, self.refresh_details)
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:  # type: ignore[override]
         if event.list_view.id != "details-device-list":
