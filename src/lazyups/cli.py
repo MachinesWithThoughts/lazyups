@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import click
 
-from .app import LazyUPSApp, VALID_SCREENS
+from .app import VALID_SCREENS, LazyUPSApp
 from .config import ConfigManager
 from .version import __version__
 

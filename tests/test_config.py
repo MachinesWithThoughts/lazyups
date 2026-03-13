@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from lazyups.config import ConfigManager, DEFAULT_MONITOR_FIELDS
+from lazyups.config import DEFAULT_MONITOR_FIELDS, ConfigManager
 from lazyups.models import Endpoint
 
 

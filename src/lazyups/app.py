@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 import nut2
 from textual import events
@@ -15,11 +16,11 @@ from textual.events import Click
 from textual.reactive import reactive
 from textual.widgets import DataTable, Footer, Header, ListItem, ListView, Static
 
-from .config import ConfigManager, DEFAULT_MONITOR_FIELDS
+from .config import DEFAULT_MONITOR_FIELDS, ConfigManager
 from .models import Endpoint
 from .store import EndpointsStore
-from .widgets import EndpointForm, EndpointRow
 from .version import __version__
+from .widgets import EndpointForm, EndpointRow
 
 VALID_SCREENS = ("monitor", "details", "devices", "fields", "settings")
 SCREEN_TO_MENU_INDEX = {"monitor": 0, "details": 1, "devices": 3, "fields": 4, "settings": 3}
@@ -392,7 +393,7 @@ class DetailsScreen(Static):
 
         self.selected_index = max(0, min(self.selected_index, len(self.devices) - 1))
         device = self.devices[self.selected_index]
-        row = {
+        row: dict[str, object] = {
             "captured_at": datetime.now().isoformat(),
             "target": device.upsc_target(),
             "endpoint": {
@@ -411,7 +412,7 @@ class DetailsScreen(Static):
         self.refresh_details()
         self.set_interval(self.poll_interval, self.refresh_details)
 
-    def on_list_view_selected(self, event: ListView.Selected) -> None:  # type: ignore[override]
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
         if event.list_view.id != "details-device-list":
             return
         event.stop()
@@ -538,21 +539,26 @@ class DisplayFieldsScreen(Static):
     def action_scroll_end(self) -> None:
         self._scroller().scroll_end(animate=False)
 
+    @property
+    def app_ref(self) -> "LazyUPSApp":
+        return cast("LazyUPSApp", self.app)
+
     def _save_toggled_field(self, field: str) -> None:
-        current_fields = self.app.config.load_monitor_fields()
+        current_fields = self.app_ref.config.load_monitor_fields()
         if field in current_fields:
             updated_fields = [item for item in current_fields if item != field]
         else:
             updated_fields = [*current_fields, field]
 
-        self.app.config.save_monitor_fields(updated_fields)
+        self.app_ref.config.save_monitor_fields(updated_fields)
         self.refresh_fields_form()
 
-        monitor_screen = self.app.query_one("#monitor", MonitorScreen)
+        monitor_screen = self.app_ref.query_one("#monitor", MonitorScreen)
         monitor_screen.refresh_monitor()
 
     def on_click(self, event: Click) -> None:
-        widget_id = event.widget.id or ""
+        widget = event.widget
+        widget_id = widget.id if widget is not None and widget.id is not None else ""
         field = self.field_widget_map.get(widget_id)
         if field is None:
             return
@@ -567,7 +573,7 @@ class DisplayFieldsScreen(Static):
 
         fields = discover_available_fields(self.store)
         sections = grouped_field_sections(fields)
-        selected = set(self.app.config.load_monitor_fields())
+        selected = set(self.app_ref.config.load_monitor_fields())
 
         if not sections:
             scroller.mount(Static("No fields discovered yet. Add a device in Settings > Devices."))
@@ -639,7 +645,7 @@ class LazyUPSApp(App):
             return self.monitor_screen.display or self.details_screen.display
         return None
 
-    def action_quit(self) -> None:
+    def action_quit(self) -> None:  # type: ignore[override]
         self.exit()
 
     def on_key(self, event: events.Key) -> None:
@@ -674,8 +680,9 @@ class LazyUPSApp(App):
         menu = self.query_one(Menu)
         menu.list_view.index = SCREEN_TO_MENU_INDEX[screen_id]
 
-    def on_list_view_selected(self, event: ListView.Selected) -> None:  # type: ignore[override]
-        widget_id = event.item.query_one(Static).id
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        item_static = event.item.query_one(Static)
+        widget_id = item_static.id or ""
         if widget_id == "menu-monitor":
             self.show_screen("monitor")
             self.query_one("#monitor", MonitorScreen).refresh_monitor()

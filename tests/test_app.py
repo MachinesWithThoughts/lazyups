@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from lazyups.app import DeviceSnapshot, DetailsScreen, LazyUPSApp, MonitorScreen
+from lazyups.app import DetailsScreen, DeviceSnapshot, LazyUPSApp, MonitorScreen
 from lazyups.models import Endpoint
 from lazyups.store import EndpointsStore
 

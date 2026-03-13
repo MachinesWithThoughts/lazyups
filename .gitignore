@@ -24,6 +24,7 @@ dist/
 # Local/runtime data
 .lazyups.config
 *.jsonl
+preflight--*.txt
 
 # Editor/OS
 .DS_Store
