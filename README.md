@@ -1,5 +1,17 @@
 # LazyUPS
 
+<p align="center">
+  <a href="https://github.com/tamclaw1000/lazyups/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/tamclaw1000/lazyups/ci.yml?style=flat-square" />
+  </a>
+  <a href="https://github.com/tamclaw1000/lazyups/releases">
+    <img src="https://img.shields.io/github/v/release/tamclaw1000/lazyups?style=flat-square" />
+  </a>
+  <a href="https://github.com/tamclaw1000/lazyups/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/tamclaw1000/lazyups?style=flat-square" />
+  </a>
+</p>
+
 Terminal UI for monitoring NUT (`upsc`) UPS devices.
 
 ## Features
