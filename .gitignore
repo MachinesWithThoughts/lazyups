@@ -25,6 +25,7 @@ dist/
 .lazyups.config
 *.jsonl
 preflight--*.txt
+python-version-validation/
 
 # Editor/OS
 .DS_Store
