@@ -109,7 +109,7 @@ Common usage:
 ./mirror.sh --force
 ./mirror.sh --main-only
 ./mirror.sh --all
-./mirror.sh --create-release v01.03.05
+./mirror.sh --create-release v01.03.08
 ./mirror.sh --create-latest-release
 ```
 

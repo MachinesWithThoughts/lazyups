@@ -33,10 +33,10 @@ Terminal UI for monitoring NUT (`upsc`) UPS devices.
 pipx install --python python3.12 "git+https://github.com/MachinesWithThoughts/lazyups.git@v01.03.07"
 ```
 
-### uv tool
+### uv tool (Python 3.12 required)
 
 ```bash
-uv tool install "git+https://github.com/MachinesWithThoughts/lazyups.git@v01.03.07"
+uv tool install --python python3.12 "git+https://github.com/MachinesWithThoughts/lazyups.git@v01.03.08"
 ```
 
 ## Run
