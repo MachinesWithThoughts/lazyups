@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict
 from pathlib import Path
 from typing import Iterable, List
@@ -47,6 +48,18 @@ class ConfigManager:
 
     def __init__(self, path: Path | None = None) -> None:
         self.path = path if path is not None else DEFAULT_CONFIG_PATH
+
+    def is_writable(self) -> bool:
+        """Return whether config file can be written/created."""
+
+        if self.path.exists():
+            return os.access(self.path, os.W_OK)
+
+        parent = self.path.parent
+        if not parent.exists():
+            parent = parent.parent
+
+        return os.access(parent, os.W_OK)
 
     def validate_startup_file(self) -> tuple[bool, str | None]:
         """Validate the config file shape before app startup."""

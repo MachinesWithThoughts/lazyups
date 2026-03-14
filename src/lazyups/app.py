@@ -36,6 +36,17 @@ BASE_MONITOR_FIELDS: list[str] = [
 ]
 
 
+def format_config_source(config: ConfigManager) -> str:
+    """Render config source with existence and writability indicators."""
+
+    path = config.path
+    notes: list[str] = []
+    if path == DEFAULT_CONFIG_PATH and not path.exists():
+        notes.append("does not exist")
+    notes.append("writable" if config.is_writable() else "read-only")
+    return f"Config source: {path} ({', '.join(notes)})"
+
+
 def discover_available_fields(store: EndpointsStore) -> list[str]:
     fields = set(BASE_MONITOR_FIELDS)
     for endpoint in store.list():
@@ -442,11 +453,7 @@ class DevicesScreen(Static):
         yield VerticalScroll(
             Vertical(
                 Static("Configured endpoints", classes="section-title"),
-                Static(
-                    "Config source: "
-                    f"{self.config.path}"
-                    f"{' (does not exist)' if self.config.path == DEFAULT_CONFIG_PATH and not self.config.path.exists() else ''}"
-                ),
+                Static(format_config_source(self.config)),
                 Container(id="endpoint-list", classes="endpoint-list"),
                 self.form,
                 classes="settings-container",
@@ -464,6 +471,11 @@ class DevicesScreen(Static):
             container.mount(EndpointRow(endpoint))
 
     def on_endpoint_form_submitted(self, message: EndpointForm.Submitted) -> None:
+        if not self.config.is_writable():
+            self.app.bell()
+            self.app.notify(f"Config file is read-only: {self.config.path}", severity="error")
+            return
+
         previous = message.previous
         if previous is None:
             self.store.add(message.endpoint)
@@ -475,6 +487,11 @@ class DevicesScreen(Static):
             self.form.load_endpoint(None)
 
     def on_endpoint_row_remove(self, message: EndpointRow.Remove) -> None:
+        if not self.config.is_writable():
+            self.app.bell()
+            self.app.notify(f"Config file is read-only: {self.config.path}", severity="error")
+            return
+
         self.store.remove(message.endpoint)
         self.config.save_endpoints(self.store.list())
         self.refresh_endpoints()
@@ -549,6 +566,11 @@ class DisplayFieldsScreen(Static):
         return cast("LazyUPSApp", self.app)
 
     def _save_toggled_field(self, field: str) -> None:
+        if not self.app_ref.config.is_writable():
+            self.app.bell()
+            self.app.notify(f"Config file is read-only: {self.app_ref.config.path}", severity="error")
+            return
+
         current_fields = self.app_ref.config.load_monitor_fields()
         if field in current_fields:
             updated_fields = [item for item in current_fields if item != field]
@@ -584,9 +606,7 @@ class DisplayFieldsScreen(Static):
             scroller.mount(Static("No fields discovered yet. Add a device in Settings > Devices."))
             return
 
-        config_path = self.app_ref.config.path
-        missing_suffix = " (does not exist)" if config_path == DEFAULT_CONFIG_PATH and not config_path.exists() else ""
-        scroller.mount(Static(f"Config source: {config_path}{missing_suffix}"))
+        scroller.mount(Static(format_config_source(self.app_ref.config)))
         scroller.mount(Static("Available fields (deduplicated)"))
         scroller.mount(Static(""))
 
