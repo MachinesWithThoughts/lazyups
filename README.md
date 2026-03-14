@@ -25,38 +25,36 @@ Terminal UI for monitoring NUT (`upsc`) UPS devices.
 
 ## Install
 
-Build the executable:
+### pipx
 
 ```bash
-build-exectuable.exe
+pipx install "git+https://github.com/MachinesWithThoughts/lazyups.git@v01.03.03"
 ```
 
-Then install it system-wide:
+### uv tool
 
 ```bash
-sudo cp dist/lazyups /usr/local/bin
+uv tool install "git+https://github.com/MachinesWithThoughts/lazyups.git@v01.03.03"
 ```
 
 ## Run
 
 ```bash
-./run.sh
+lazyups
 ```
 
 Start on a specific page:
 
 ```bash
-./run.sh --screen monitor
-./run.sh --screen details
-./run.sh --screen devices
-./run.sh --screen fields
+lazyups --screen monitor
+lazyups --screen details
+lazyups --screen devices
+lazyups --screen fields
 ```
 
 ## Configuration (`.lazyups.config`)
 
-LazyUPS stores its settings in a JSON file named `.lazyups.config`.
-
-Default search order:
+LazyUPS reads config from the first existing file in this order:
 
 ```text
 ~/.lazyups.config
@@ -67,8 +65,10 @@ Default search order:
 Override at runtime:
 
 ```bash
-./run.sh --config-file /path/to/lazyups.config
+lazyups --config-file /path/to/lazyups.config
 ```
+
+In **Settings**, LazyUPS shows the active config source path and whether it is writable.
 
 It currently stores:
 
