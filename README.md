@@ -14,6 +14,8 @@
 
 Terminal UI for monitoring NUT (`upsc`) UPS devices.
 
+> Compatibility note: LazyUPS currently supports Python 3.12 only (`>=3.12,<3.13`) due to upstream `nut2`/`telnetlib` compatibility on some Python 3.13+ builds.
+
 ## Features
 
 - Monitor view with live polling
@@ -25,16 +27,16 @@ Terminal UI for monitoring NUT (`upsc`) UPS devices.
 
 ## Install
 
-### pipx
+### pipx (Python 3.12 required)
 
 ```bash
-pipx install "git+https://github.com/MachinesWithThoughts/lazyups.git@v01.03.03"
+pipx install --python python3.12 "git+https://github.com/MachinesWithThoughts/lazyups.git@v01.03.07"
 ```
 
 ### uv tool
 
 ```bash
-uv tool install "git+https://github.com/MachinesWithThoughts/lazyups.git@v01.03.03"
+uv tool install "git+https://github.com/MachinesWithThoughts/lazyups.git@v01.03.07"
 ```
 
 ## Run
