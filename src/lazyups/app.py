@@ -16,7 +16,7 @@ from textual.events import Click
 from textual.reactive import reactive
 from textual.widgets import DataTable, Footer, Header, ListItem, ListView, Static
 
-from .config import DEFAULT_MONITOR_FIELDS, ConfigManager
+from .config import DEFAULT_CONFIG_PATH, DEFAULT_MONITOR_FIELDS, ConfigManager
 from .models import Endpoint
 from .store import EndpointsStore
 from .version import __version__
@@ -442,6 +442,11 @@ class DevicesScreen(Static):
         yield VerticalScroll(
             Vertical(
                 Static("Configured endpoints", classes="section-title"),
+                Static(
+                    "Config source: "
+                    f"{self.config.path}"
+                    f"{' (does not exist)' if self.config.path == DEFAULT_CONFIG_PATH and not self.config.path.exists() else ''}"
+                ),
                 Container(id="endpoint-list", classes="endpoint-list"),
                 self.form,
                 classes="settings-container",
@@ -579,6 +584,9 @@ class DisplayFieldsScreen(Static):
             scroller.mount(Static("No fields discovered yet. Add a device in Settings > Devices."))
             return
 
+        config_path = self.app_ref.config.path
+        missing_suffix = " (does not exist)" if config_path == DEFAULT_CONFIG_PATH and not config_path.exists() else ""
+        scroller.mount(Static(f"Config source: {config_path}{missing_suffix}"))
         scroller.mount(Static("Available fields (deduplicated)"))
         scroller.mount(Static(""))
 
