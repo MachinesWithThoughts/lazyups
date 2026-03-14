@@ -56,10 +56,18 @@ Start on a specific page:
 
 LazyUPS stores its settings in a JSON file named `.lazyups.config`.
 
-Default location:
+Default search order:
 
 ```text
 ~/.lazyups.config
+/etc/lazyups.config
+/usr/local/etc/lazyups.config
+```
+
+Override at runtime:
+
+```bash
+./run.sh --config-file /path/to/lazyups.config
 ```
 
 It currently stores:

@@ -11,6 +11,10 @@ from .models import Endpoint
 
 CONFIG_FILENAME = ".lazyups.config"
 DEFAULT_CONFIG_PATH = Path.home() / CONFIG_FILENAME
+SYSTEM_CONFIG_PATHS = [
+    Path("/etc/lazyups.config"),
+    Path("/usr/local/etc/lazyups.config"),
+]
 
 DEFAULT_MONITOR_FIELDS = [
     "battery.charge",
@@ -22,6 +26,20 @@ DEFAULT_MONITOR_FIELDS = [
     "ups.load",
     "ups.status",
 ]
+
+
+def resolve_config_path(explicit_path: Path | None = None) -> Path:
+    """Resolve config path from explicit flag or fallback search order."""
+
+    if explicit_path is not None:
+        return explicit_path.expanduser()
+
+    candidates = [DEFAULT_CONFIG_PATH, *SYSTEM_CONFIG_PATHS]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return DEFAULT_CONFIG_PATH
 
 
 class ConfigManager:
@@ -134,4 +152,6 @@ __all__ = [
     "CONFIG_FILENAME",
     "DEFAULT_CONFIG_PATH",
     "DEFAULT_MONITOR_FIELDS",
+    "SYSTEM_CONFIG_PATHS",
+    "resolve_config_path",
 ]

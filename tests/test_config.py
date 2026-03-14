@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from lazyups.config import DEFAULT_MONITOR_FIELDS, ConfigManager
+from lazyups.config import (
+    DEFAULT_CONFIG_PATH,
+    DEFAULT_MONITOR_FIELDS,
+    SYSTEM_CONFIG_PATHS,
+    ConfigManager,
+    resolve_config_path,
+)
 from lazyups.models import Endpoint
 
 
@@ -61,3 +67,43 @@ def test_validate_startup_file_accepts_valid_shape(tmp_path: Path) -> None:
     valid, error = manager.validate_startup_file()
     assert valid is True
     assert error is None
+
+
+def test_resolve_config_path_uses_explicit_path(tmp_path: Path) -> None:
+    explicit = tmp_path / "custom.json"
+    assert resolve_config_path(explicit) == explicit
+
+
+def test_resolve_config_path_uses_default_when_present(monkeypatch, tmp_path: Path) -> None:
+    default_path = tmp_path / ".lazyups.config"
+    default_path.write_text("{}")
+    monkeypatch.setattr("lazyups.config.DEFAULT_CONFIG_PATH", default_path)
+    monkeypatch.setattr("lazyups.config.SYSTEM_CONFIG_PATHS", [])
+
+    assert resolve_config_path() == default_path
+
+
+def test_resolve_config_path_uses_system_fallback(monkeypatch, tmp_path: Path) -> None:
+    default_path = tmp_path / ".lazyups.config"
+    system_path = tmp_path / "etc-lazyups.config"
+    system_path.write_text("{}")
+
+    monkeypatch.setattr("lazyups.config.DEFAULT_CONFIG_PATH", default_path)
+    monkeypatch.setattr("lazyups.config.SYSTEM_CONFIG_PATHS", [system_path])
+
+    assert resolve_config_path() == system_path
+
+
+def test_resolve_config_path_falls_back_to_default(monkeypatch, tmp_path: Path) -> None:
+    default_path = tmp_path / ".lazyups.config"
+    system_path = tmp_path / "etc-lazyups.config"
+
+    monkeypatch.setattr("lazyups.config.DEFAULT_CONFIG_PATH", default_path)
+    monkeypatch.setattr("lazyups.config.SYSTEM_CONFIG_PATHS", [system_path])
+
+    assert resolve_config_path() == default_path
+
+
+def test_system_config_paths_are_expected() -> None:
+    assert SYSTEM_CONFIG_PATHS == [Path("/etc/lazyups.config"), Path("/usr/local/etc/lazyups.config")]
+    assert DEFAULT_CONFIG_PATH.name == ".lazyups.config"
