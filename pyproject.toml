@@ -35,6 +35,9 @@ lazyups = "lazyups.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+lazyups = ["app.css"]
+
 [tool.pytest.ini_options]
 addopts = ["--cov=lazyups", "--cov-report=term-missing"]
 testpaths = ["tests"]
